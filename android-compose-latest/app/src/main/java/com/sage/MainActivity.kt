@@ -3,12 +3,16 @@ package com.sage
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.toggleable
@@ -16,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,7 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.sage.ui.theme.AndroidcomposelatestTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,78 +45,167 @@ class MainActivity : ComponentActivity() {
       AndroidcomposelatestTheme {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-          Greeting("Android")
+          ArticleScreen2()
         }
       }
     }
   }
 }
+@Stable
+class ArticleState(
+  val orderModalState: SageSheetState,
+  val filterModalState: DrawerState
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Greeting(name: String) {
+fun rememberSageSheetState(
+  state: SageSheetState = SageSheetState(
+    coroutineScope = rememberCoroutineScope(), sheetState = rememberSheetState()
+  )): SageSheetState {
+  return remember { state }
+}
 
-  var openBottomSheet by rememberSaveable { mutableStateOf(false) }
-  var skipPartiallyExpanded by remember { mutableStateOf(false) }
-  val scope = rememberCoroutineScope()
-  val bottomSheetState = rememberSheetState()
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun rememberArticleState(
+  orderModalState: SageSheetState = rememberSageSheetState(),
+  filterModalState: DrawerState = rememberDrawerState(DrawerValue.Closed)
+): ArticleState {
 
-// App content
-  Column(
-    modifier = Modifier.fillMaxSize(),
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.Center
-  ) {
-    Row(
-      Modifier.toggleable(
-        value = skipPartiallyExpanded,
-        role = Role.Checkbox,
-        onValueChange = { checked -> skipPartiallyExpanded = checked }
+  return remember {
+    ArticleState(
+      orderModalState = orderModalState,
+      filterModalState = filterModalState
+    )
+  }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ArticleScreen(
+  state: ArticleState = rememberArticleState()
+) {
+
+  ModalNavigationDrawer(
+    drawerState = state.filterModalState,
+    drawerContent = {
+      ModalDrawerSheet {
+        Spacer(Modifier.height(12.dp))
+      }
+    },
+    content = {
+      Scaffold(
+        content = { innerPadding ->
+          Column(
+            modifier = Modifier
+              .fillMaxSize()
+              .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
+          ) {
+            Text("${state.orderModalState.sheetState.currentValue}")
+            Text("${state.orderModalState.sheetState.isVisible}")
+            Text("${state.orderModalState.sheetState.targetValue}")
+            Button(onClick = { state.orderModalState.showModal() }) {
+              Text("Show Modal")
+            }
+            Order(
+              modalState = state.orderModalState,
+            )
+          }
+        }
       )
-    ) {
-      Checkbox(checked = skipPartiallyExpanded, onCheckedChange = null)
-      Spacer(Modifier.width(16.dp))
-      Text("Skip partially expanded State")
     }
-    Button(onClick = { openBottomSheet = !openBottomSheet }) {
-      Text(text = "Show Bottom Sheet")
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ArticleScreen1(
+  state: ArticleState = rememberArticleState()
+) {
+
+  ModalNavigationDrawer(
+    drawerState = state.filterModalState,
+    drawerContent = {
+      ModalDrawerSheet {
+        Spacer(Modifier.height(12.dp))
+      }
+    },
+
+    content = {
+      Column {
+        Text("${state.orderModalState.sheetState.currentValue}")
+        Text("${state.orderModalState.sheetState.isVisible}")
+        Text("${state.orderModalState.sheetState.targetValue}")
+        Button(onClick = { state.orderModalState.showModal() }) {
+          Text("Show Modal")
+        }
+      }
+      Order(
+        modalState = state.orderModalState,
+      )
+    }
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ArticleScreen2(
+  state: ArticleState = rememberArticleState()
+) {
+
+  Column {
+    Text("${state.orderModalState.sheetState.currentValue}")
+    Text("${state.orderModalState.sheetState.isVisible}")
+    Text("${state.orderModalState.sheetState.targetValue}")
+    Button(onClick = { state.orderModalState.showModal() }) {
+      Text("Show Modal")
+    }
+  }
+  Order(
+    modalState = state.orderModalState,
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+class SageSheetState(
+  private val coroutineScope: CoroutineScope,
+  val sheetState: SheetState,
+  openBottomSheet: Boolean = false
+) {
+  var openBottomSheet by mutableStateOf(openBottomSheet)
+
+  fun showModal() {
+    coroutineScope.launch {
+      openBottomSheet = true
+      sheetState.collapse()
     }
   }
 
+  fun closeModal() {
+    coroutineScope.launch {
+      sheetState.hide()
+      openBottomSheet = false
+    }
+  }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Order(
+  modalState: SageSheetState
+) {
+
 // Sheet content
-  if (openBottomSheet) {
+  if (modalState.openBottomSheet) {
     ModalBottomSheet(
-      onDismissRequest = { openBottomSheet = false },
-      sheetState = bottomSheetState,
+      onDismissRequest = { modalState.closeModal() },
+      sheetState = modalState.sheetState,
     ) {
-      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        Button(
-          // Note: If you provide logic outside of onDismissRequest to remove the sheet,
-          // you must additionally handle intended state cleanup, if any.
-          onClick = {
-            scope.launch { bottomSheetState.hide() }.invokeOnCompletion {
-              if (!bottomSheetState.isVisible) {
-                openBottomSheet = false
-              }
-            }
-          }
-        ) {
-          Text("Hide Bottom Sheet")
-        }
-      }
-      LazyColumn {
-        items(50) {
-          ListItem(
-            headlineText = { Text("Item $it") },
-            leadingContent = {
-              Icon(
-                Icons.Default.Favorite,
-                contentDescription = "Localized description"
-              )
-            }
-          )
-        }
-      }
+      Text("Hello")
     }
   }
 }

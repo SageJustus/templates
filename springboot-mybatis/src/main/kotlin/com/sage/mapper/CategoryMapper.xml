@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sage.mapper.CategoryMapper">
+
+  <resultMap id="dto" type="com.sage.CategoryDto">
+    <result column="path" property="path" javaType="list" jdbcType="VARCHAR"
+            typeHandler="com.sage.CategoryTypeHandler"></result>
+  </resultMap>
+
+  <select id="getOne" resultMap="dto">
+    select category.path
+    from category where category.id = 1
+  </select>
+
+</mapper>
